@@ -3,8 +3,8 @@ import { cache } from "@/lib/cache"
 import { Product } from "@prisma/client"
 
 export const getMostPopularProduct = cache(
-  () => {
-    return prisma.product.findMany({
+  async () => {
+    return await prisma.product.findMany({
       where: { isAvailableForPurchase: true },
       orderBy: { orders: { _count: "desc" } },
       take: 6,
@@ -15,8 +15,8 @@ export const getMostPopularProduct = cache(
 )
 
 export const getNewestProduct = cache(
-  () => {
-    return prisma.product.findMany({
+  async () => {
+    return await prisma.product.findMany({
       where: { isAvailableForPurchase: true },
       orderBy: { createdAt: "desc" },
       take: 6,

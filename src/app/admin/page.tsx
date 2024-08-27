@@ -14,7 +14,7 @@ async function getSalesData() {
     _sum: { pricePaidInCents: true },
     _count: true,
   })
-
+  console.log(data)
   return {
     amount: (data._sum.pricePaidInCents || 0) / 100,
     numberOfSales: data._count,
@@ -27,6 +27,8 @@ async function getUsersData() {
       _sum: { pricePaidInCents: true },
     }),
   ])
+
+  console.log("user data:" + { userCount, orderData })
   return {
     userCount,
     averageValuePerUser:

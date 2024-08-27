@@ -6,6 +6,7 @@ import prisma from "@/db/db"
 import { Product } from "@prisma/client"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 export default async function SuccessPage({
   searchParams,
@@ -13,18 +14,17 @@ export default async function SuccessPage({
   searchParams: { payment_intent: string }
 }) {
   const locale = "en"
-  const payment = await stripe.paymentIntents.retrieve(
+  const paymentIntent = await stripe.paymentIntents.retrieve(
     searchParams.payment_intent
   )
-
-  if (payment.metadata.productId == null) return notFound()
+  if (paymentIntent.metadata.productId == null) return notFound()
 
   const product = await prisma.product.findUnique({
-    where: { id: payment.metadata.productId },
+    where: { id: paymentIntent.metadata.productId },
   })
   if (product == null) return notFound()
 
-  const isSuccess = payment.status === "succeeded"
+  const isSuccess = paymentIntent.status === "succeeded"
   return (
     <div className="max-w-5xl w-full mx-auto space-y-8">
       <p className="text-4xl font-bold">{isSuccess ? "Success!" : "Error!"}</p>
@@ -48,7 +48,7 @@ export default async function SuccessPage({
           <Button className="mt-4" size="lg" asChild>
             {isSuccess ? (
               <a
-                href={`/products/download/${await createDownlaodVerification(
+                href={`/products/download/${await createDownloadVerification(
                   product.id
                 )}`}
               >
@@ -64,8 +64,13 @@ export default async function SuccessPage({
   )
 }
 
-async function createDownlaodVerification(productId: string) {
-  return await prisma.downloadVerification.create({
-    data: { productId, expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24) },
+async function createDownloadVerification(productId: string) {
+  const data = await prisma.downloadVerification.create({
+    data: {
+      productId,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    },
   })
+
+  return data.id
 }

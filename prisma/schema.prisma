@@ -29,7 +29,9 @@ model Product {
 
 model User {
   id String  @id @default(uuid())
+  name String @default("")
   email String @unique
+  password String@default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders Order[]
@@ -51,5 +53,5 @@ model DownloadVerification {
   expiresAt DateTime
   createdAt DateTime @default(now())
   productId String
-  product Product @relation(fields: [productId], references: [id],onDelete: Cascade)
+  products Product @relation(fields: [productId], references: [id],onDelete: Cascade)
 }
