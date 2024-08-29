@@ -1,6 +1,5 @@
 "use client"
 
-import { registerUser } from "@/app/api/register/auth"
 import React, { useState } from "react"
 
 import { useRouter } from "next/navigation"
@@ -13,21 +12,25 @@ const Register = () => {
   const [error, setError] = useState<string | undefined | string[]>(undefined)
   const router = useRouter()
 
-  async function hanleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     try {
-      const formData = { name, email, password }
-      const response = await registerUser(formData)
-      if (response?.status === 201) {
-        localStorage.setItem("token", response.token)
-        console.log("good")
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      })
+      if (response.ok) {
         router.push("/")
       } else {
-        setError(response?.error)
+        const data = await response.json()
+        setError(data.error)
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError("An Occrred during registration")
     }
   }
 
@@ -61,7 +64,7 @@ const Register = () => {
               onChange={(e) => setEmail(e.target.value.trim())}
             />
           </div>
-          <div className="mb-6">
+          <div className="mb-2">
             <label htmlFor="password" className="block text-gray-700 mb-2">
               Password
             </label>
@@ -73,13 +76,18 @@ const Register = () => {
               onChange={(e) => setPassword(e.target.value.trim())}
             />
           </div>
+          <div className="my-4">
+            <p className="text-primary cursor-pointer hover:text-purple-900 ">
+              Have Already an account?
+            </p>
+          </div>
           <div>
             <p className="text-red-500">{error}</p>
           </div>
           <button
             type="submit"
             className="w-full bg-primary text-white py-2 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2  focus:ring-opacity-75"
-            onClick={hanleSubmit}
+            onClick={handleSubmit}
           >
             Sign Up
           </button>

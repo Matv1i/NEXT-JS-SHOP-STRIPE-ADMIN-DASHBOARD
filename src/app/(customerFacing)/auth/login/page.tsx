@@ -1,9 +1,35 @@
 "use client"
+
+import { useRouter } from "next/navigation"
 import React, { useState } from "react"
 
 const Login = () => {
-  const [email, setEmail] = useState<string | null>()
-  const [password, setPassword] = useState<string | null>()
+  const [email, setEmail] = useState<string>("")
+  const [password, setPassword] = useState<string>("")
+  const [error, setError] = useState<string | null>()
+  const router = useRouter()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    try {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+      if (response.ok) {
+        router.push("/")
+      } else {
+        const data = await response.json()
+        setError(data.error)
+      }
+    } catch (error) {
+      setError("An Occrred during registration")
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -19,9 +45,10 @@ const Login = () => {
               id="email"
               className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-primary"
               required
+              onChange={(e) => setEmail(e.target.value.trim())}
             />
           </div>
-          <div className="mb-6">
+          <div className="mb-2">
             <label htmlFor="password" className="block text-gray-700 mb-2">
               Password
             </label>
@@ -30,11 +57,21 @@ const Login = () => {
               id="password"
               className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-primary"
               required
+              onChange={(e) => setPassword(e.target.value.trim())}
             />
+          </div>
+          <div className="my-4">
+            <p className="text-primary cursor-pointer hover:text-purple-900 ">
+              Dont have a account?
+            </p>
+          </div>
+          <div>
+            <p className="text-red-600">{error}</p>
           </div>
           <button
             type="submit"
             className="w-full bg-primary text-white py-2 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2  focus:ring-opacity-75"
+            onClick={handleSubmit}
           >
             Login
           </button>

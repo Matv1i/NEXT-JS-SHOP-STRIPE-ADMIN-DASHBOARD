@@ -7,6 +7,7 @@ import { z } from "zod"
 import jwt from "jsonwebtoken"
 import { User } from "@prisma/client"
 import bcrypt from "bcrypt"
+import { cookies } from "next/headers"
 interface UserProps {
   name: string
   email: string
@@ -20,16 +21,22 @@ const UserSchema = z.object({
 })
 const SECRET_KEY = process.env.JWT_CRYPTO as string
 
-function validation() {}
-export async function registerUser(userData: UserProps) {
+export async function POST(req: Request) {
   try {
-    const { name, email, password } = UserSchema.parse(userData)
+    const body = await req.json()
+
+    const { name, email, password } = UserSchema.parse(body)
 
     const existUser = await prisma.user.findFirst({
       where: { email },
     })
     if (existUser) {
-      return { error: "User Already Exist", status: 400 }
+      return NextResponse.json(
+        {
+          error: "User a;ready exist ",
+        },
+        { status: 400 }
+      )
     }
     const newUser = await prisma.user.create({
       data: {
@@ -48,16 +55,27 @@ export async function registerUser(userData: UserProps) {
       { expiresIn: "1h" }
     )
 
-    return {
-      token,
-      status: 201,
-    }
+    console.log(token, "Token route registarion ")
+    const response = NextResponse.json({
+      message: "User registered successfully",
+    })
+
+    cookies().set("session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 3600,
+    })
+    console.log(cookies().get("session"))
+
+    return response
   } catch (error) {
     if (error instanceof z.ZodError) {
       const validationErrors = error.errors.map((err) => err.message)
-      return { error: validationErrors, status: 400 }
+      return NextResponse.json({ error: validationErrors }, { status: 400 })
     }
 
-    return { error: "Something went wrong", status: 500 }
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
   }
 }

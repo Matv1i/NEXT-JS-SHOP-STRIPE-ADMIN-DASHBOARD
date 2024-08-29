@@ -1,11 +1,12 @@
 import Image from "next/image"
 import { formatCurrency } from "@/lib/formaters"
 import Stripe from "stripe"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import prisma from "@/db/db"
 import { Product } from "@prisma/client"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { getSession } from "@/lib/sessionAction"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 export default async function SuccessPage({
@@ -25,6 +26,7 @@ export default async function SuccessPage({
   if (product == null) return notFound()
 
   const isSuccess = paymentIntent.status === "succeeded"
+
   return (
     <div className="max-w-5xl w-full mx-auto space-y-8">
       <p className="text-4xl font-bold">{isSuccess ? "Success!" : "Error!"}</p>
@@ -64,11 +66,16 @@ export default async function SuccessPage({
   )
 }
 
-async function createDownloadVerification(productId: string) {
+export async function createDownloadVerification(productId: string) {
+  const session = await getSession()
+  if (!session) {
+    redirect("/auth/login")
+  }
+  const userId = session.id
   const data = await prisma.downloadVerification.create({
     data: {
       productId,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      userId: userId,
     },
   })
 

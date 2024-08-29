@@ -4,12 +4,16 @@ import React, { Suspense } from "react"
 import prisma from "@/db/db"
 import { cache } from "@/lib/cache"
 
-const getProducts = cache(() => {
-  return prisma.product.findMany({
-    where: { isAvailableForPurchase: true },
-    orderBy: { name: "asc" },
-  })
-}, ["/products", "getProducts"])
+const getProducts = cache(
+  () => {
+    return prisma.product.findMany({
+      where: { isAvailableForPurchase: true },
+      orderBy: { name: "asc" },
+    })
+  },
+  ["/", "getProducts"],
+  { revalidate: 60 * 60 * 24 }
+)
 
 export default function ProductPage() {
   return (

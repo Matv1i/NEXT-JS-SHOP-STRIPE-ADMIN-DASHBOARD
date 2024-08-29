@@ -1,3 +1,4 @@
+"use server"
 import prisma from "@/db/db"
 
 import { NextRequest, NextResponse } from "next/server"
@@ -7,6 +8,7 @@ import { NextApiRequest, NextApiResponse } from "next"
 import Stripe from "stripe"
 import PurchaseReceipt from "@/email/PurchaseReceipt"
 import { Product } from "@prisma/client"
+import { getSession } from "@/lib/sessionAction"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 
@@ -19,7 +21,7 @@ async function sendEmails(
 ): Promise<void> {
   try {
     const { data, error } = await resend.emails.send({
-      from: "Acme <matveypolienienkov@gmail.com>",
+      from: "Acme <sadvsvsdvsvsdv@gmail.com>",
       to: email,
       subject: "Hello world",
       react: (
@@ -53,11 +55,16 @@ export async function POST(req: NextRequest) {
     const charge = event.data.object
     const productId = charge.metadata.productId
     const email = charge.billing_details.email
+    console.log(email)
+    console.log(charge)
     const pricePaidInCents = charge.amount
     //
     const product = await prisma.product.findUnique({
       where: { id: productId },
+      select: {},
     })
+    const userInfo = await getSession()
+    const userId = userInfo.id
     if (product === null || email == null)
       return new NextResponse("Bad request ", { status: 400 })
 
@@ -65,7 +72,6 @@ export async function POST(req: NextRequest) {
       email,
       orders: { create: { productId, pricePaidInCents } },
     }
-
     const {
       orders: [order],
     } = await prisma.user.upsert({
@@ -74,14 +80,15 @@ export async function POST(req: NextRequest) {
       update: userFields,
       select: { orders: { orderBy: { createdAt: "desc" }, take: 1 } },
     })
-    const downloadVerification = await prisma.downloadVerification.create({
+
+    await prisma.downloadVerification.create({
       data: {
         productId,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        userId: userId,
       },
     })
-
-    await sendEmails(email, order, product, downloadVerification.id)
+  } else {
+    console.log("Not success")
   }
   return new NextResponse()
 }

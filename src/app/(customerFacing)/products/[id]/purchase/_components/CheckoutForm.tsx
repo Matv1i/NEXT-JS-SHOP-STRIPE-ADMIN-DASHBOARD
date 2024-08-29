@@ -1,5 +1,6 @@
 "use client"
-import { userOrderExists } from "@/app/actions/order"
+
+import { getCheckoutData } from "@/app/actions/order"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -18,11 +19,10 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
-import { error } from "console"
 import Image from "next/image"
 import { FormEvent, useState } from "react"
 
-type Props = {
+type CheckoutFormProps = {
   product: {
     id: string
     imagePath: string
@@ -31,34 +31,45 @@ type Props = {
     description: string
   }
   clientSecret: string
+  email: string
 }
 
-const stripe = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY as string)
-export function CheckoutForm({ product, clientSecret }: Props) {
-  const locale = "en"
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY as string
+)
+
+export function CheckoutForm({
+  product,
+  clientSecret,
+  email,
+}: CheckoutFormProps) {
   return (
     <div className="max-w-5xl w-full mx-auto space-y-8">
       <div className="flex gap-4 items-center">
         <div className="aspect-video flex-shrink-0 w-1/3 relative">
           <Image
-            className="object-cover"
+            src={product.imagePath}
             fill
             alt={product.name}
-            src={product.imagePath}
+            className="object-cover"
           />
         </div>
         <div>
           <div className="text-lg">
             {formatCurrency(product.priceInCents / 100)}
           </div>
-          <p className="text-2xl font-extrabold">{product.name}</p>
+          <h1 className="text-2xl font-bold">{product.name}</h1>
           <div className="line-clamp-3 text-muted-foreground">
             {product.description}
           </div>
         </div>
       </div>
-      <Elements options={{ clientSecret, locale }} stripe={stripe}>
-        <Form productId={product.id} priceInCents={product.priceInCents} />
+      <Elements options={{ clientSecret }} stripe={stripePromise}>
+        <Form
+          priceInCents={product.priceInCents}
+          productId={product.id}
+          email={email}
+        />
       </Elements>
     </div>
   )
@@ -67,22 +78,30 @@ export function CheckoutForm({ product, clientSecret }: Props) {
 function Form({
   priceInCents,
   productId,
+  email,
 }: {
   priceInCents: number
   productId: string
+  email: string
 }) {
   const stripe = useStripe()
+  const elements = useElements()
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>()
-  const [email, setEmail] = useState<string>()
-  const elements = useElements()
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (stripe == null || elements == null) return setIsLoading(true)
 
-    const orderExists = await userOrderExists(email, productId)
+    if (stripe == null || elements == null || email == null) return
+
+    setIsLoading(true)
+
+    const orderExists = await getCheckoutData(email, productId)
+
     if (orderExists) {
-      setErrorMessage("You have already this product ")
+      setErrorMessage(
+        "You have already purchased this product. Try downloading it from the My Orders page"
+      )
       setIsLoading(false)
       return
     }
@@ -92,22 +111,26 @@ function Form({
         elements,
         confirmParams: {
           return_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/stripe/purchase-success`,
+          payment_method_data: {
+            billing_details: {
+              email: email,
+            },
+          },
         },
       })
       .then(({ error }) => {
         if (error.type === "card_error" || error.type === "validation_error") {
           setErrorMessage(error.message)
         } else {
-          setErrorMessage("An unknown Error")
+          setErrorMessage("An unknown error occurred")
         }
       })
-      .finally(() => {
-        setIsLoading(false)
-      })
+      .finally(() => setIsLoading(false))
   }
+
   return (
     <form onSubmit={handleSubmit}>
-      <Card className="my-8">
+      <Card>
         <CardHeader>
           <CardTitle>Checkout</CardTitle>
           {errorMessage && (
@@ -116,22 +139,14 @@ function Form({
             </CardDescription>
           )}
         </CardHeader>
-
         <CardContent>
           <PaymentElement />
-          <div className="mt-4">
-            <LinkAuthenticationElement
-              onChange={(e) => setEmail(e.value.email)}
-            />
-          </div>
         </CardContent>
         <CardFooter>
           <Button
             className="w-full"
             size="lg"
-            disabled={
-              stripe == null || elements == null || isLoading || email == null
-            }
+            disabled={stripe == null || elements == null || isLoading}
           >
             {isLoading
               ? "Purchasing..."

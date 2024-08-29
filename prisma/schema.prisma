@@ -50,8 +50,9 @@ model Order{
 
 model DownloadVerification {
   id String  @id @default(uuid())
-  expiresAt DateTime
+  
   createdAt DateTime @default(now())
+  userId String @default("")
   productId String
   products Product @relation(fields: [productId], references: [id],onDelete: Cascade)
 }

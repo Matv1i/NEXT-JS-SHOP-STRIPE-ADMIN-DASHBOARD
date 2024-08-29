@@ -1,7 +1,8 @@
-import prisma from "@/db/db"
+import db from "@/db/db"
 import { notFound } from "next/navigation"
 import Stripe from "stripe"
 import { CheckoutForm } from "./_components/CheckoutForm"
+import { getEmailOfSession, getSession } from "@/lib/sessionAction"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 
@@ -10,8 +11,8 @@ export default async function PurchasePage({
 }: {
   params: { id: string }
 }) {
-  const product = await prisma.product.findUnique({ where: { id } })
-  if (product == null) notFound()
+  const product = await db.product.findUnique({ where: { id } })
+  if (product == null) return notFound()
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: product.priceInCents,
@@ -22,11 +23,13 @@ export default async function PurchasePage({
   if (paymentIntent.client_secret == null) {
     throw Error("Stripe failed to create payment intent")
   }
+  const email = await getEmailOfSession()
 
   return (
     <CheckoutForm
       product={product}
       clientSecret={paymentIntent.client_secret}
+      email={email}
     />
   )
 }
