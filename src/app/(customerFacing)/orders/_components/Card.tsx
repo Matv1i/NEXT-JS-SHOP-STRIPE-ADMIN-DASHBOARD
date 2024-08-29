@@ -45,7 +45,7 @@ export function CardOrder({
       </CardContent>
       <CardFooter>
         <Button asChild className="w-full">
-          <Link href={`/products/download/${pathDownload}`}>Download</Link>
+          <Link href={pathDownload}>Download</Link>
         </Button>
       </CardFooter>
     </Card>

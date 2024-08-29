@@ -61,9 +61,12 @@ const Login = () => {
             />
           </div>
           <div className="my-4">
-            <p className="text-primary cursor-pointer hover:text-purple-900 ">
+            <a
+              href="/auth/register"
+              className="text-primary cursor-pointer hover:text-purple-900 "
+            >
               Dont have a account?
-            </p>
+            </a>
           </div>
           <div>
             <p className="text-red-600">{error}</p>

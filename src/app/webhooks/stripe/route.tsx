@@ -1,4 +1,3 @@
-"use server"
 import prisma from "@/db/db"
 
 import { NextRequest, NextResponse } from "next/server"
@@ -13,6 +12,7 @@ import { getSession } from "@/lib/sessionAction"
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 
 const resend = new Resend(process.env.RESEND)
+
 async function sendEmails(
   email: string,
   order: any,
@@ -25,11 +25,7 @@ async function sendEmails(
       to: email,
       subject: "Hello world",
       react: (
-        <PurchaseReceipt
-          order={order}
-          downloadVerificationId={downloadVerification}
-          product={product}
-        ></PurchaseReceipt>
+        <PurchaseReceipt order={order} product={product}></PurchaseReceipt>
       ),
     })
 
@@ -45,26 +41,38 @@ async function sendEmails(
 }
 
 export async function POST(req: NextRequest) {
-  const event = await stripe.webhooks.constructEvent(
-    await req.text(),
-    req.headers.get("stripe-signature") as string,
-    process.env.STRIPE_WEBHOOK_SECRET as string
-  )
+  let event
+
+  try {
+    const rawBody = await req.text()
+    const signature = req.headers.get("stripe-signature") as string
+
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET as string
+    )
+  } catch (err: any) {
+    console.error(`⚠️  Webhook signature verification failed.`, err.message)
+    return new NextResponse("Webhook Error: Invalid signature", { status: 400 })
+  }
 
   if (event.type === "charge.succeeded") {
     const charge = event.data.object
     const productId = charge.metadata.productId
     const email = charge.billing_details.email
-    console.log(email)
-    console.log(charge)
+
     const pricePaidInCents = charge.amount
+
     //
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: {},
     })
-    const userInfo = await getSession()
-    const userId = userInfo.id
+    if (!product) {
+      console.error(`Product not found for ID: ${productId}`)
+      return new NextResponse("Bad request: Product not found", { status: 400 })
+    }
+
     if (product === null || email == null)
       return new NextResponse("Bad request ", { status: 400 })
 
@@ -80,15 +88,6 @@ export async function POST(req: NextRequest) {
       update: userFields,
       select: { orders: { orderBy: { createdAt: "desc" }, take: 1 } },
     })
-
-    await prisma.downloadVerification.create({
-      data: {
-        productId,
-        userId: userId,
-      },
-    })
-  } else {
-    console.log("Not success")
   }
   return new NextResponse()
 }

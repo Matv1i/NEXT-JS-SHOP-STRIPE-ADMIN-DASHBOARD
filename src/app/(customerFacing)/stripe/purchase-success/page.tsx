@@ -30,6 +30,10 @@ export default async function SuccessPage({
   return (
     <div className="max-w-5xl w-full mx-auto space-y-8">
       <p className="text-4xl font-bold">{isSuccess ? "Success!" : "Error!"}</p>
+      <p className="text-3xl font-semibold">
+        {isSuccess ? "Now you can download it from your orders" : null}
+      </p>
+
       <div className="flex gap-4 items-center">
         <div className="aspect-video flex-shrink-0 w-1/3 relative">
           <Image
@@ -49,13 +53,7 @@ export default async function SuccessPage({
           </div>
           <Button className="mt-4" size="lg" asChild>
             {isSuccess ? (
-              <a
-                href={`/products/download/${await createDownloadVerification(
-                  product.id
-                )}`}
-              >
-                Download
-              </a>
+              <a href={"/orders"}>Go to Orders</a>
             ) : (
               <Link href={`/products/${product.id}/purchase`}>Try Again </Link>
             )}

@@ -20,7 +20,8 @@ import {
 } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import Image from "next/image"
-import { FormEvent, useState } from "react"
+import { useRouter } from "next/navigation"
+import { FormEvent, useEffect, useReducer, useState } from "react"
 
 type CheckoutFormProps = {
   product: {
@@ -68,7 +69,7 @@ export function CheckoutForm({
         <Form
           priceInCents={product.priceInCents}
           productId={product.id}
-          email={email}
+          userEmail={email}
         />
       </Elements>
     </div>
@@ -78,17 +79,25 @@ export function CheckoutForm({
 function Form({
   priceInCents,
   productId,
-  email,
+  userEmail,
 }: {
   priceInCents: number
   productId: string
-  email: string
+  userEmail: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>()
-
+  const [email, setEmail] = useState<string>("")
+  const router = useRouter()
+  useEffect(() => {
+    if (!userEmail) {
+      router.push("/auth/login")
+    }
+    setEmail(userEmail)
+    console.log(userEmail)
+  }, [])
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
 
@@ -97,6 +106,8 @@ function Form({
     setIsLoading(true)
 
     const orderExists = await getCheckoutData(email, productId)
+    if (!orderExists) {
+    }
 
     if (orderExists) {
       setErrorMessage(
@@ -141,6 +152,16 @@ function Form({
         </CardHeader>
         <CardContent>
           <PaymentElement />
+          <div className="mt-4">
+            <LinkAuthenticationElement
+              options={{
+                defaultValues: {
+                  email: email,
+                },
+              }}
+              onChange={(e) => setEmail(e.value.email)}
+            />
+          </div>
         </CardContent>
         <CardFooter>
           <Button

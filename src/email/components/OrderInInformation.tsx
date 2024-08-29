@@ -12,17 +12,12 @@ import { Section } from "lucide-react"
 type OrderProps = {
   order: { id: string; createdAt: Date; pricePaidInCents: number }
   product: { imagePath: string; name: string; description: string }
-  downloadVerificationId: string
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
 })
-export function OrderInformation({
-  order,
-  product,
-  downloadVerificationId,
-}: OrderProps) {
+export function OrderInformation({ order, product }: OrderProps) {
   console.log(`${process.env.NEXT_PUBLIC_SERVER_URL}${product.imagePath}`)
   return (
     <>
@@ -61,14 +56,6 @@ export function OrderInformation({
         <Row className="mt-8">
           <Column className="align-bottom">
             <Text className="text-lg font-bold m-0 mr-4">{product.name}</Text>
-          </Column>
-          <Column align="right">
-            <Button
-              href={`http://localhost:3000/products/download/${downloadVerificationId}`}
-              className="bg-black text-white px-6 py-4 rounded text-lg"
-            >
-              Download
-            </Button>
           </Column>
         </Row>
         <Row>
